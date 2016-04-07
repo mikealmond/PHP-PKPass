@@ -1,4 +1,5 @@
 <?php
+use PKPass\Exception\PKPassException;
 use PKPass\PKPass;
 
 if (isset($_POST['name'])) {
@@ -12,65 +13,65 @@ if (isset($_POST['name'])) {
     $balance = '$' . rand(0, 30) . '.' . rand(10, 99); // Create random balance
     $name    = stripslashes($_POST['name']);
 
-    // Create pass
-    $pass = new PKPass();
+    $json = '{
+        "passTypeIdentifier": "pass.com.apple.test",
+            "formatVersion": 1,
+            "organizationName": "Starbucks",
+            "teamIdentifier": "AGK5BZEN3E",
+            "serialNumber": "' . $id . '",
+            "backgroundColor": "rgb(240,240,240)",
+            "logoText": "Starbucks",
+            "description": "Demo pass",
+            "storeCard": {
+            "secondaryFields": [
+                    {
+                        "key": "balance",
+                        "label": "BALANCE",
+                        "value": "' . $balance . '"
+                    },
+                    {
+                        "key": "name",
+                        "label": "NICKNAME",
+                        "value": "' . $name . '"
+                    }
 
-    $pass->setCertificate('../../../Certificate.p12'); // Set the path to your Pass Certificate (.p12 file)
-    $pass->setCertificatePassword('test123'); // Set password for certificate
-    $pass->setWWDRcertPath('../../../AppleWWDR.pem');
-    $pass->setJSON('{
-	"passTypeIdentifier": "pass.com.apple.test",
-	"formatVersion": 1,
-	"organizationName": "Starbucks",
-	"teamIdentifier": "AGK5BZEN3E",
-	"serialNumber": "' . $id . '",
-    "backgroundColor": "rgb(240,240,240)",
-	"logoText": "Starbucks",
-	"description": "Demo pass",
-	"storeCard": {
-        "secondaryFields": [
-            {
-                "key": "balance",
-                "label": "BALANCE",
-                "value": "' . $balance . '"
+                ],
+                "backFields": [
+                    {
+                        "key": "id",
+                        "label": "Card Number",
+                        "value": "' . $id . '"
+                    }
+                ]
             },
-            {
-                "key": "name",
-                "label": "NICKNAME",
-                "value": "' . $name . '"
+            "barcode": {
+            "format": "PKBarcodeFormatPDF417",
+                "message": "' . $id . '",
+                "messageEncoding": "iso-8859-1",
+                "altText": "' . $id . '"
             }
+          }';
+    try {
+        // Create pass
+        $pass = new PKPass('../../../Certificate.p12', 'test123', $json);
+        $pass->setWwdrCertificatePath('../../../AppleWWDR.pem');
 
-        ],
-        "backFields": [
-            {
-                "key": "id",
-                "label": "Card Number",
-                "value": "' . $id . '"
-            }
-        ]
-    },
-    "barcode": {
-        "format": "PKBarcodeFormatPDF417",
-        "message": "' . $id . '",
-        "messageEncoding": "iso-8859-1",
-        "altText": "' . $id . '"
-    }
-    }');
+        // add files to the PKPass package
+        $pass->addFile('icon.png');
+        $pass->addFile('icon@2x.png');
+        $pass->addFile('logo.png');
+        $pass->addFile('background.png', 'strip.png');
 
-    // add files to the PKPass package
-    $pass->addFile('icon.png');
-    $pass->addFile('icon@2x.png');
-    $pass->addFile('logo.png');
-    $pass->addFile('background.png', 'strip.png');
-
-    if ( !$pass->create(true)) { // Create and output the PKPass
-        echo 'Error: ' . $pass->getError();
+        $pass->create(true);
+    } catch (PKPassException $exception) {
+        echo "Error: {$exception->getMessage()}";
     }
     exit;
 } else {
     // User lands here, there are no $_POST variables set
 
-?><html>
+    ?>
+    <html>
     <head>
         <title>Starbucks pass creator - PHP class demo</title>
 
@@ -148,6 +149,6 @@ if (isset($_POST['name'])) {
 
     </div>
     </body>
-</html>
-<?
+    </html>
+    <?
 }

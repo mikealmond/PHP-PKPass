@@ -1,13 +1,8 @@
 <?php
+use PKPass\Exception\PKPassException;
 use PKPass\PKPass;
 
 require('../PKPass.php');
-
-$pass = new PKPass();
-
-$pass->setCertificate('../Certificate.p12');  // 1. Set the path to your Pass Certificate (.p12 file)
-$pass->setCertificatePassword('test123');     // 2. Set password for certificate
-$pass->setWWDRcertPath('../AppleWWDRCA.pem'); // 3. Set the path to your WWDR Intermediate certificate (.pem file)
 
 // Top-Level Keys http://developer.apple.com/library/ios/#documentation/userexperience/Reference/PassKit_Bundle/Chapters/TopLevel.html
 $standardKeys         = [
@@ -76,14 +71,21 @@ $passData = array_merge(
     $visualAppearanceKeys,
     $webServiceKeys
 );
+try {
+    $pass = new PKPass();
 
-$pass->setJSON(json_encode($passData));
+    $pass->setCertificate('../Certificate.p12');  // 1. Set the path to your Pass Certificate (.p12 file)
+    $pass->setCertificatePassword('test123');     // 2. Set password for certificate
+    $pass->setWwdrCertificatePath('../AppleWWDRCA.pem'); // 3. Set the path to your WWDR Intermediate certificate (.pem file)
 
-// Add files to the PKPass package
-$pass->addFile('images/icon.png');
-$pass->addFile('images/icon@2x.png');
-$pass->addFile('images/logo.png');
+    $pass->setJson(json_encode($passData, JSON_FORCE_OBJECT));
 
-if ( !$pass->create(true)) { // Create and output the PKPass
-    echo 'Error: ' . $pass->getError();
+    // Add files to the PKPass package
+    $pass->addFile('icon.png');
+    $pass->addFile('icon@2x.png');
+    $pass->addFile('logo.png');
+
+    $pass->create(true);
+} catch (PKPassException $exception) {
+    echo "Error {$exception->getMessage()}";
 }
